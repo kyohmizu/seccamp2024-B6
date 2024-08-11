@@ -1,0 +1,5 @@
+kubeclarity:
+  ingress:
+    enabled: true
+    hosts:
+      - host: kubeclarity.seccamp.com

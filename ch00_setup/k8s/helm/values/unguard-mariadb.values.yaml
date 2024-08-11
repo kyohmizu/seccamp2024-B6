@@ -1,0 +1,7 @@
+primary:
+  persistence:
+    enabled: false
+# https://github.com/bitnami/charts/issues/15093
+auth:
+  rootPassword: mysuperpass
+  password: mysuperpass

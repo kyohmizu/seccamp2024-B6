@@ -1,0 +1,64 @@
+repositories:
+- name: cilium
+  url: https://helm.cilium.io
+- name: ingress-nginx
+  url: https://kubernetes.github.io/ingress-nginx
+- name: bitnami
+  url: https://charts.bitnami.com/bitnami
+- name: kubeclarity
+  url: https://openclarity.github.io/kubeclarity
+
+releases:
+- name: cilium
+  namespace: kube-system
+  chart: cilium/cilium
+  version: 1.15.4
+  values:
+  - values/cilium.values.yaml
+- name: ingress-nginx
+  namespace: ingress-nginx
+  createNamespace: true
+  chart: ingress-nginx/ingress-nginx
+  version: 4.10.1
+  values:
+  - values/ingress-nginx.values.yaml
+  needs:
+  - kube-system/cilium
+- name: unguard-mariadb
+  namespace: unguard
+  createNamespace: true
+  chart: bitnami/mariadb
+  # version: 11.5.7
+  version: 12.1.4
+  values:
+  - values/unguard-mariadb.values.yaml
+  needs:
+  - kube-system/cilium
+- name: unguard
+  namespace: unguard
+  createNamespace: true
+  chart: oci://ghcr.io/dynatrace-oss/unguard/chart/unguard
+  version: 0.9.3
+  values:
+  - values/unguard.values.yaml
+  needs:
+  - kube-system/cilium
+  - unguard/unguard-mariadb
+  - ingress-nginx/ingress-nginx
+- name: tetragon
+  namespace: kube-system
+  chart: cilium/tetragon
+  version: 1.1.2
+  values:
+  - values/tetragon.values.yaml
+  needs:
+  - kube-system/cilium
+- name: kubeclarity
+  namespace: kubeclarity
+  createNamespace: true
+  chart: kubeclarity/kubeclarity
+  version: 2.23.3
+  values:
+  - values/kubeclarity.values.yaml
+  needs:
+  - kube-system/cilium

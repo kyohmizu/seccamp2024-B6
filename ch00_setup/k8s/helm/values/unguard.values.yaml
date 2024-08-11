@@ -1,0 +1,5 @@
+userSimulator:
+  cronJob:
+    schedule: "*/30 * * * *"
+    jobTemplate:
+      restartPolicy: Never
