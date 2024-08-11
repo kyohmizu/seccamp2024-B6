@@ -3,7 +3,7 @@ module "ec2" {
 
   for_each = var.instances
 
-  name = "${each.key}-${var.env}"
+  name = "${var.instance_name}-${var.env}-${each.key}"
   ami  = var.ami
 
   instance_type          = each.value.instance_type
@@ -24,7 +24,7 @@ module "ec2" {
       volume_type = "gp3"
       # throughput  = 100
       volume_size = each.value.volume_size
-      tags = local.tags
+      tags        = local.tags
     },
   ]
 
@@ -35,7 +35,7 @@ module "security_group" {
   source  = "terraform-aws-modules/security-group/aws"
   version = "~> 4.0"
 
-  name   = "sg-${var.env}"
+  name   = "seccamp-${var.env}"
   vpc_id = module.vpc.vpc_id
 
   egress_rules = ["all-all"]
