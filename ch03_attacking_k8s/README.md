@@ -111,7 +111,7 @@ https://attack.mitre.org/matrices/enterprise/containers/
 
 https://www.microsoft.com/en-us/security/blog/2020/04/02/attack-matrix-kubernetes/
 
-![k8s-matrix](https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2020/04/k8s-matrix.png)
+![k8s-matrix](./images/k8s-matrix.png)
 
 # 具体的な攻撃手法
 

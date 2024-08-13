@@ -8,7 +8,7 @@ module "ec2" {
   user_data     = file("${path.module}/userdata.bash")
 
   instances = {
-    "mizumoto" = {
+    "00" = {
       instance_type = "m4.xlarge"
       volume_size   = 40
     }
