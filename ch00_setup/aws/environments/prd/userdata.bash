@@ -99,6 +99,7 @@ export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
 kubectl krew install neat
 kubectl krew install view-secret
 kubectl krew install who-can
+kubectl krew install gadget
 
 # curlshell
 curl https://raw.githubusercontent.com/irsl/curlshell/main/curlshell.py > /root/attack/curlshell.py
@@ -404,5 +405,7 @@ chmod 600 /root/.kube/config
 helmfile sync -f /root/helm/helmfile.yaml > /root/logs/helmfile-sync.log 2>&1
 
 kubectl apply -f /root/app/hubble-ingress.yaml > /root/logs/hubble-ingress.log 2>&1
+
+kubectl gadget deploy > /root/logs/gadget-deploy.log 2>&1
 
 touch /root/logs/finished

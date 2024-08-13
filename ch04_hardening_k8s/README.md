@@ -154,7 +154,7 @@ https://github.com/cncf/tag-security/blob/main/security-whitepaper/v2/cloud-nati
 
 2つの観点を統合し、そこにセキュリティ対策を当てはめると下図のようになります。
 
-![]()
+![4c-sdlc](./images/4c-sdlc.png)
 
 # セキュリティベストプラクティス
 
@@ -199,6 +199,13 @@ API サーバーや kubelet などのクラスタコンポーネントへのネ�
 https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 
 Security Context を使用して、ポッドやコンテナのセキュリティ設定を定義します。これにより、ポッドがホストシステムにアクセスする際の制限やポリシーを適用できます。
+
+- **runAsNonRoot**
+  - コンテナを非 root ユーザーとして実行することを強制します。
+- **Capabilities**
+  - コンテナに割り当てられる Linux ケーパビリティを制御します。必要最小限の権限でコンテナを実行し、不必要な権限を制限することができます。
+- **readOnlyRootFilesystem**
+  - コンテナの root ファイルシステムを読み取り専用にすることで、コンテナ内での不要なファイル作成や変更を防止します。
 
 ### Secret 管理
 

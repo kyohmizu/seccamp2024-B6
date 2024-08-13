@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-security-context
+spec:
+  strategy:
+    type: Recreate
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-security-context
+  template:
+    metadata:
+      labels:
+        app: nginx-security-context
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+      - name: nginx
+        image: nginxinc/nginx-unprivileged
+        securityContext:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}

@@ -8,7 +8,7 @@ module "ec2" {
   user_data     = file("${path.module}/userdata.bash")
 
   instances = {
-    "test" = {
+    "mizumoto" = {
       instance_type = "m4.xlarge"
       volume_size   = 40
     }
@@ -49,6 +49,26 @@ module "ec2" {
     #   volume_size   = 40
     # }
     # "10" = {
+    #   instance_type = "m4.xlarge"
+    #   volume_size   = 40
+    # }
+    # "11" = {
+    #   instance_type = "m4.xlarge"
+    #   volume_size   = 40
+    # }
+    # "12" = {
+    #   instance_type = "m4.xlarge"
+    #   volume_size   = 40
+    # }
+    # "13" = {
+    #   instance_type = "m4.xlarge"
+    #   volume_size   = 40
+    # }
+    # "14" = {
+    #   instance_type = "m4.xlarge"
+    #   volume_size   = 40
+    # }
+    # "15" = {
     #   instance_type = "m4.xlarge"
     #   volume_size   = 40
     # }

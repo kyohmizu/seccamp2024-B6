@@ -1,11 +1,11 @@
-# 演習 1
-
-- [演習 1](#演習-1)
+- [演習1: Kubernetes の基本リソース](#演習1-kubernetes-の基本リソース)
   - [Pod](#pod)
   - [Deployment](#deployment)
   - [Service](#service)
   - [Ingress](#ingress)
   - [環境のクリーンアップ](#環境のクリーンアップ)
+
+# 演習1: Kubernetes の基本リソース
 
 Kubernetes の基本的なリソースについて理解しましょう。
 
@@ -463,4 +463,4 @@ kubectl delete svc nginx-service
 kubectl delete ingress nginx-ingress
 ```
 
-ここでは取り扱わなかったリソースが多くありますが、Namespace や DaemonSet などのリソースは2章の演習で取り扱います。
+ここで取り扱ったリソースは全体のごく一部です。他のリソースについても知りたい方は、[Kubernetes Docs](https://kubernetes.io/docs/concepts/) などを見ながらご自身で試してみてください。

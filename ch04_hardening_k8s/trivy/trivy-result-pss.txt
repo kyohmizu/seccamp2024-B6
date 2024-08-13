@@ -1,0 +1,432 @@
+
+DaemonSet/cilium (kubernetes)
+=============================
+Tests: 1 (SUCCESSES: 0, FAILURES: 1, EXCEPTIONS: 0)
+Failures: 0 ()
+
+HIGH: Container 'mount-bpf-fs' of DaemonSet 'cilium' should set 'securityContext.privileged' to false
+═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Privileged containers share namespaces with the host system and do not offer any security. They should be used exclusively for system containers that require high privileges.
+
+See https://avd.aquasec.com/misconfig/ksv017
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ DaemonSet/cilium:309-326
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ 309 ┌                 - args:
+ 310 │                     - mount | grep "/sys/fs/bpf type bpf" || mount -t bpf bpf /sys/fs/bpf
+ 311 │                   command:
+ 312 │                     - /bin/bash
+ 313 │                     - -c
+ 314 │                     - --
+ 315 │                   image: quay.io/cilium/cilium:v1.15.4@sha256:b760a4831f5aab71c711f7537a107b751d0d0ce90dd32d8b358df3c5da385426
+ 316 │                   imagePullPolicy: IfNotPresent
+ 317 └                   name: mount-bpf-fs
+ ...   
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+DaemonSet/tetragon (kubernetes)
+===============================
+Tests: 1 (SUCCESSES: 0, FAILURES: 1, EXCEPTIONS: 0)
+Failures: 0 ()
+
+HIGH: Container 'tetragon' of DaemonSet 'tetragon' should set 'securityContext.privileged' to false
+═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Privileged containers share namespaces with the host system and do not offer any security. They should be used exclusively for system containers that require high privileges.
+
+See https://avd.aquasec.com/misconfig/ksv017
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ DaemonSet/tetragon:53-89
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  53 ┌                 - args:
+  54 │                     - --config-dir=/etc/tetragon/tetragon.conf.d/
+  55 │                   env:
+  56 │                     - name: NODE_NAME
+  57 │                       valueFrom:
+  58 │                         fieldRef:
+  59 │                             apiVersion: v1
+  60 │                             fieldPath: spec.nodeName
+  61 └                   image: quay.io/cilium/tetragon:v1.1.2
+  ..   
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+DaemonSet/gadget (kubernetes)
+=============================
+Tests: 1 (SUCCESSES: 0, FAILURES: 1, EXCEPTIONS: 0)
+Failures: 0 ()
+
+MEDIUM: Container 'gadget' of DaemonSet 'gadget' should not set 'securityContext.capabilities.add'
+═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+According to pod security standard 'Capabilities', capabilities beyond the default set must not be added.
+
+See https://avd.aquasec.com/misconfig/ksv022
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ DaemonSet/gadget:33-139
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  33 ┌                 - command:
+  34 │                     - /entrypoint
+  35 │                   env:
+  36 │                     - name: NODE_NAME
+  37 │                       valueFrom:
+  38 │                         fieldRef:
+  39 │                             apiVersion: v1
+  40 │                             fieldPath: spec.nodeName
+  41 └                     - name: GADGET_POD_UID
+  ..   
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+DaemonSet/cilium (kubernetes)
+=============================
+Tests: 1 (SUCCESSES: 0, FAILURES: 1, EXCEPTIONS: 0)
+Failures: 0 ()
+
+MEDIUM: Container 'apply-sysctl-overwrites' of DaemonSet 'cilium' should not set 'securityContext.capabilities.add'
+═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+According to pod security standard 'Capabilities', capabilities beyond the default set must not be added.
+
+See https://avd.aquasec.com/misconfig/ksv022
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ DaemonSet/cilium:277-308
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ 277 ┌                 - command:
+ 278 │                     - sh
+ 279 │                     - -ec
+ 280 │                     - |
+ 281 │                       cp /usr/bin/cilium-sysctlfix /hostbin/cilium-sysctlfix;
+ 282 │                       nsenter --mount=/hostproc/1/ns/mnt "${BIN_PATH}/cilium-sysctlfix";
+ 283 │                       rm /hostbin/cilium-sysctlfix
+ 284 │                   env:
+ 285 └                     - name: BIN_PATH
+ ...   
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+DaemonSet/cilium (kubernetes)
+=============================
+Tests: 1 (SUCCESSES: 0, FAILURES: 1, EXCEPTIONS: 0)
+Failures: 0 ()
+
+MEDIUM: Container 'cilium-agent' of DaemonSet 'cilium' should not set 'securityContext.capabilities.add'
+═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+According to pod security standard 'Capabilities', capabilities beyond the default set must not be added.
+
+See https://avd.aquasec.com/misconfig/ksv022
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ DaemonSet/cilium:49-212
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  49 ┌                 - args:
+  50 │                     - --config-dir=/tmp/cilium/config-map
+  51 │                   command:
+  52 │                     - cilium-agent
+  53 │                   env:
+  54 │                     - name: K8S_NODE_NAME
+  55 │                       valueFrom:
+  56 │                         fieldRef:
+  57 └                             apiVersion: v1
+  ..   
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+DaemonSet/cilium (kubernetes)
+=============================
+Tests: 1 (SUCCESSES: 0, FAILURES: 1, EXCEPTIONS: 0)
+Failures: 0 ()
+
+MEDIUM: Container 'clean-cilium-state' of DaemonSet 'cilium' should not set 'securityContext.capabilities.add'
+═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+According to pod security standard 'Capabilities', capabilities beyond the default set must not be added.
+
+See https://avd.aquasec.com/misconfig/ksv022
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ DaemonSet/cilium:327-377
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ 327 ┌                 - command:
+ 328 │                     - /init-container.sh
+ 329 │                   env:
+ 330 │                     - name: CILIUM_ALL_STATE
+ 331 │                       valueFrom:
+ 332 │                         configMapKeyRef:
+ 333 │                             key: clean-cilium-state
+ 334 │                             name: cilium-config
+ 335 └                             optional: true
+ ...   
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+DaemonSet/cilium (kubernetes)
+=============================
+Tests: 1 (SUCCESSES: 0, FAILURES: 1, EXCEPTIONS: 0)
+Failures: 0 ()
+
+MEDIUM: Container 'mount-cgroup' of DaemonSet 'cilium' should not set 'securityContext.capabilities.add'
+═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+According to pod security standard 'Capabilities', capabilities beyond the default set must not be added.
+
+See https://avd.aquasec.com/misconfig/ksv022
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ DaemonSet/cilium:243-276
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ 243 ┌                 - command:
+ 244 │                     - sh
+ 245 │                     - -ec
+ 246 │                     - |
+ 247 │                       cp /usr/bin/cilium-mount /hostbin/cilium-mount;
+ 248 │                       nsenter --cgroup=/hostproc/1/ns/cgroup --mount=/hostproc/1/ns/mnt "${BIN_PATH}/cilium-mount" $CGROUP_ROOT;
+ 249 │                       rm /hostbin/cilium-mount
+ 250 │                   env:
+ 251 └                     - name: CGROUP_ROOT
+ ...   
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+Deployment/coredns (kubernetes)
+===============================
+Tests: 1 (SUCCESSES: 0, FAILURES: 1, EXCEPTIONS: 0)
+Failures: 0 ()
+
+MEDIUM: Container 'coredns' of Deployment 'coredns' should not set 'securityContext.capabilities.add'
+═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+According to pod security standard 'Capabilities', capabilities beyond the default set must not be added.
+
+See https://avd.aquasec.com/misconfig/ksv022
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Deployment/coredns:45-99
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  45 ┌                 - args:
+  46 │                     - -conf
+  47 │                     - /etc/coredns/Corefile
+  48 │                   image: registry.k8s.io/coredns/coredns:v1.11.1
+  49 │                   imagePullPolicy: IfNotPresent
+  50 │                   livenessProbe:
+  51 │                     failureThreshold: 5
+  52 │                     httpGet:
+  53 └                         path: /health
+  ..   
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+Deployment/ingress-nginx-controller (kubernetes)
+================================================
+Tests: 1 (SUCCESSES: 0, FAILURES: 1, EXCEPTIONS: 0)
+Failures: 0 ()
+
+MEDIUM: Container 'controller' of Deployment 'ingress-nginx-controller' should not set 'securityContext.capabilities.add'
+═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+According to pod security standard 'Capabilities', capabilities beyond the default set must not be added.
+
+See https://avd.aquasec.com/misconfig/ksv022
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Deployment/ingress-nginx-controller:49-124
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  49 ┌                 - args:
+  50 │                     - /nginx-ingress-controller
+  51 │                     - --publish-service=$(POD_NAMESPACE)/ingress-nginx-controller
+  52 │                     - --election-id=ingress-nginx-leader
+  53 │                     - --controller-class=k8s.io/ingress-nginx
+  54 │                     - --ingress-class=nginx
+  55 │                     - --configmap=$(POD_NAMESPACE)/ingress-nginx-controller
+  56 │                   env:
+  57 └                     - name: POD_NAME
+  ..   
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+Pod/etcd-kind-control-plane (kubernetes)
+========================================
+Tests: 1 (SUCCESSES: 0, FAILURES: 1, EXCEPTIONS: 0)
+Failures: 0 ()
+
+MEDIUM: Pod 'etcd-kind-control-plane' should not set 'spec.template.volumes.hostPath'
+═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+According to pod security standard 'HostPath Volumes', HostPath volumes must be forbidden.
+
+See https://avd.aquasec.com/misconfig/ksv023
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Pod/etcd-kind-control-plane:25-107
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  25 ┌     containers:
+  26 │         - command:
+  27 │             - etcd
+  28 │             - --advertise-client-urls=https://172.18.0.2:2379
+  29 │             - --cert-file=/etc/kubernetes/pki/etcd/server.crt
+  30 │             - --client-cert-auth=true
+  31 │             - --data-dir=/var/lib/etcd
+  32 │             - --experimental-initial-corrupt-check=true
+  33 └             - --experimental-watch-progress-notify-interval=5s
+  ..   
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+Pod/kube-controller-manager-kind-control-plane (kubernetes)
+===========================================================
+Tests: 1 (SUCCESSES: 0, FAILURES: 1, EXCEPTIONS: 0)
+Failures: 0 ()
+
+MEDIUM: Pod 'kube-controller-manager-kind-control-plane' should not set 'spec.template.volumes.hostPath'
+═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+According to pod security standard 'HostPath Volumes', HostPath volumes must be forbidden.
+
+See https://avd.aquasec.com/misconfig/ksv023
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Pod/kube-controller-manager-kind-control-plane:24-140
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  24 ┌     containers:
+  25 │         - command:
+  26 │             - kube-controller-manager
+  27 │             - --allocate-node-cidrs=true
+  28 │             - --authentication-kubeconfig=/etc/kubernetes/controller-manager.conf
+  29 │             - --authorization-kubeconfig=/etc/kubernetes/controller-manager.conf
+  30 │             - --bind-address=127.0.0.1
+  31 │             - --client-ca-file=/etc/kubernetes/pki/ca.crt
+  32 └             - --cluster-cidr=10.244.0.0/16
+  ..   
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+Pod/kube-scheduler-kind-control-plane (kubernetes)
+==================================================
+Tests: 1 (SUCCESSES: 0, FAILURES: 1, EXCEPTIONS: 0)
+Failures: 0 ()
+
+MEDIUM: Pod 'kube-scheduler-kind-control-plane' should not set 'spec.template.volumes.hostPath'
+═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+According to pod security standard 'HostPath Volumes', HostPath volumes must be forbidden.
+
+See https://avd.aquasec.com/misconfig/ksv023
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Pod/kube-scheduler-kind-control-plane:24-86
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  24 ┌     containers:
+  25 │         - command:
+  26 │             - kube-scheduler
+  27 │             - --authentication-kubeconfig=/etc/kubernetes/scheduler.conf
+  28 │             - --authorization-kubeconfig=/etc/kubernetes/scheduler.conf
+  29 │             - --bind-address=127.0.0.1
+  30 │             - --kubeconfig=/etc/kubernetes/scheduler.conf
+  31 │             - --leader-elect=true
+  32 └           image: registry.k8s.io/kube-scheduler:v1.30.0
+  ..   
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+DaemonSet/gadget (kubernetes)
+=============================
+Tests: 1 (SUCCESSES: 0, FAILURES: 1, EXCEPTIONS: 0)
+Failures: 0 ()
+
+MEDIUM: DaemonSet 'gadget' should not set 'spec.template.volumes.hostPath'
+═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+According to pod security standard 'HostPath Volumes', HostPath volumes must be forbidden.
+
+See https://avd.aquasec.com/misconfig/ksv023
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ DaemonSet/gadget:15-205
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  15 ┌     revisionHistoryLimit: 10
+  16 │     selector:
+  17 │         matchLabels:
+  18 │             k8s-app: gadget
+  19 │     template:
+  20 │         metadata:
+  21 │             annotations:
+  22 │                 container.apparmor.security.beta.kubernetes.io/gadget: unconfined
+  23 └                 inspektor-gadget.kinvolk.io/option-hook-mode: auto
+  ..   
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+DaemonSet/cilium (kubernetes)
+=============================
+Tests: 1 (SUCCESSES: 0, FAILURES: 1, EXCEPTIONS: 0)
+Failures: 0 ()
+
+MEDIUM: DaemonSet 'cilium' should not set 'spec.template.volumes.hostPath'
+═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+According to pod security standard 'HostPath Volumes', HostPath volumes must be forbidden.
+
+See https://avd.aquasec.com/misconfig/ksv023
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ DaemonSet/cilium:20-488
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  20 ┌     revisionHistoryLimit: 10
+  21 │     selector:
+  22 │         matchLabels:
+  23 │             k8s-app: cilium
+  24 │     template:
+  25 │         metadata:
+  26 │             annotations:
+  27 │                 cilium.io/cilium-configmap-checksum: be807b5457223052d9e69a28bd28dc0cdec9d86668a82d011167d4455f6042b2
+  28 └                 container.apparmor.security.beta.kubernetes.io/apply-sysctl-overwrites: unconfined
+  ..   
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+DaemonSet/tetragon (kubernetes)
+===============================
+Tests: 1 (SUCCESSES: 0, FAILURES: 1, EXCEPTIONS: 0)
+Failures: 0 ()
+
+MEDIUM: DaemonSet 'tetragon' should not set 'spec.template.volumes.hostPath'
+═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+According to pod security standard 'HostPath Volumes', HostPath volumes must be forbidden.
+
+See https://avd.aquasec.com/misconfig/ksv023
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ DaemonSet/tetragon:21-125
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  21 ┌     revisionHistoryLimit: 10
+  22 │     selector:
+  23 │         matchLabels:
+  24 │             app.kubernetes.io/instance: tetragon
+  25 │             app.kubernetes.io/name: tetragon
+  26 │     template:
+  27 │         metadata:
+  28 │             annotations:
+  29 └                 checksum/configmap: 199fa351a7ceb5300ce37ec6be68b701309bab393c0986122e4f3a2446fb168b
+  ..   
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+Pod/kube-apiserver-kind-control-plane (kubernetes)
+==================================================
+Tests: 1 (SUCCESSES: 0, FAILURES: 1, EXCEPTIONS: 0)
+Failures: 0 ()
+
+MEDIUM: Pod 'kube-apiserver-kind-control-plane' should not set 'spec.template.volumes.hostPath'
+═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+According to pod security standard 'HostPath Volumes', HostPath volumes must be forbidden.
+
+See https://avd.aquasec.com/misconfig/ksv023
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Pod/kube-apiserver-kind-control-plane:25-163
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  25 ┌     containers:
+  26 │         - command:
+  27 │             - kube-apiserver
+  28 │             - --advertise-address=172.18.0.2
+  29 │             - --allow-privileged=true
+  30 │             - --audit-log-path=/var/log/kubernetes/kube-apiserver-audit.log
+  31 │             - --audit-policy-file=/etc/kubernetes/policies/audit-policy.yaml
+  32 │             - --authorization-mode=Node,RBAC
+  33 └             - --client-ca-file=/etc/kubernetes/pki/ca.crt
+  ..   
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
