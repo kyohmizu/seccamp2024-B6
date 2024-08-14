@@ -1,4 +1,4 @@
-# クラウドネイティブなシステムを保護するための実践的Kubernetesセキュリティ
+# クラウドネイティブなシステムを保護するための実践的 Kubernetes セキュリティ
 
 [セキュリティ・キャンプ2024 全国大会](https://www.ipa.go.jp/jinzai/security-camp/2024/camp/zenkoku/index.html) B6の講義資料です。
 

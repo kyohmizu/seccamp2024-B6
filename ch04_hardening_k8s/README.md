@@ -23,19 +23,23 @@
     - [seccomp/AppArmor の有効化](#seccompapparmor-の有効化)
     - [特権コンテナの禁止](#特権コンテナの禁止)
     - [distroless イメージの利用](#distroless-イメージの利用)
+    - [Checkpoint によるコンテナ保全](#checkpoint-によるコンテナ保全)
   - [Kubernetes のセキュリティベストプラクティス](#kubernetes-のセキュリティベストプラクティス)
     - [クラスタコンポーネントのセキュリティ](#クラスタコンポーネントのセキュリティ)
     - [Security Context の適用](#security-context-の適用)
     - [Secret 管理](#secret-管理)
     - [RBAC による権限管理](#rbac-による権限管理)
-    - [Pod Security Admission によるPodへのポリシー強制](#pod-security-admission-によるpodへのポリシー強制)
-    - [ネットワークセキュリティによる Pod 間の通信制限](#ネットワークセキュリティによる-pod-間の通信制限)
+    - [Pod Security Admission による Pod へのポリシー強制](#pod-security-admission-による-pod-へのポリシー強制)
+    - [ネットワークポリシーによる Pod 間の通信制限](#ネットワークポリシーによる-pod-間の通信制限)
     - [監視ログの利用](#監視ログの利用)
 - [セキュリティツールの活用](#セキュリティツールの活用)
   - [Trivy](#trivy)
   - [Tetragon](#tetragon)
   - [OPA (Open Policy Agent) Gatekeeper](#opa-open-policy-agent-gatekeeper)
   - [Kubeclarity](#kubeclarity)
+  - [External Secrets](#external-secrets)
+  - [cosign](#cosign)
+  - [その他のツール](#その他のツール)
 - [まとめ](#まとめ)
 
 # 基本的なセキュリティの観点
@@ -156,6 +160,8 @@ https://github.com/cncf/tag-security/blob/main/security-whitepaper/v2/cloud-nati
 
 ![4c-sdlc](./images/4c-sdlc.png)
 
+参照元: https://speakerdeck.com/kyohmizu/unlocking-cloud-native-security?slide=23
+
 # セキュリティベストプラクティス
 
 Kubernetes 環境のセキュリティには取り組むべきさまざまな観点がありますが、まずはベストプラクティスへの準拠を目指すことを推奨します。
@@ -181,6 +187,14 @@ seccomp (Secure Computing Mode) と AppArmor は Linux カーネルのセキュ�
 
 distroless イメージは最小限のファイルのみを含む軽量なコンテナイメージです。これをベースイメージとして利用することで、攻撃対象領域を最小限に抑えることができます。
 
+### Checkpoint によるコンテナ保全
+
+https://kubernetes.io/blog/2023/03/10/forensic-container-analysis/
+
+Checkpoint はコンテナの現在の状態をスナップショットとして保存し、後から再開したり、他の環境で再利用したりすることができる仕組みです。これは Linux の [CRIU](https://criu.org/) という機能を利用しています。セキュリティの観点では、コンテナが侵害された場合にその時点の状態を保存し、後のフォレンジック分析に役立てることができます。
+
+Checkpoint は現状の一般的な Kubernetes 環境で利用することはできません。containerd では [v2.0 で導入予定](https://github.com/containerd/containerd/pull/6965)のため、実際に利用できるのはまだ先になると思います。またスナップショットはコンテナホスト（＝ノード）に保存されるので、ホストからスナップショットを取り出す方法についても課題があります。
+
 ## Kubernetes のセキュリティベストプラクティス
 
 - **参考リンク**
@@ -198,7 +212,7 @@ API サーバーや kubelet などのクラスタコンポーネントへのネ�
 
 https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 
-Security Context を使用して、ポッドやコンテナのセキュリティ設定を定義します。これにより、ポッドがホストシステムにアクセスする際の制限やポリシーを適用できます。
+Security Context を使用して、Pod やコンテナのセキュリティ設定を定義します。これにより、Pod がホストシステムにアクセスする際の制限やポリシーを適用できます。
 
 - **runAsNonRoot**
   - コンテナを非 root ユーザーとして実行することを強制します。
@@ -217,15 +231,31 @@ Secret リソースには認証情報などの機密情報を保存しますが�
 
 RBAC (Role-Based Access Control) は、ユーザーやサービスアカウントに対するアクセス権限を細かく制御します。最小特権の原則に従い、必要最低限の権限を付与します。
 
-### Pod Security Admission によるPodへのポリシー強制
+### Pod Security Admission による Pod へのポリシー強制
 
-Pod の作成や更新時にセキュリティルールを強制適用し、Pod のセキュリティを確保します。
+https://kubernetes.io/docs/concepts/security/pod-security-admission/
 
-### ネットワークセキュリティによる Pod 間の通信制限
+Kubernetes クラスタ内で Pod が作成または更新される際に、セキュリティポリシーを適用してクラスタ全体のセキュリティを強化するための仕組みです。これにより、Pod がセキュリティベストプラクティスに従うことが保証されます。
 
-- ネットワークポリシーを使用して、ポッド間の通信を制御し、不要な通信を遮断します。
-- CNI プラグインを使用して、ネットワークポリシーを適用することもできます。
-- デフォルトでDenyリスト方式を使用し、必要な通信だけを許可するなど。
+Pod Security Admission は [Pod Security Standards (PSS)](https://kubernetes.io/docs/concepts/security/pod-security-standards/) の実装で、3つの Pod セキュリティレベルが用意されています。
+
+- **Privileged**: 制限のかかっていないポリシーで、可能な限り幅広い権限を提供します。このポリシーは既知の特権昇格を認めます。
+- **Baseline**: 制限は最小限にされたポリシーですが、既知の特権昇格を防止します。デフォルト（最小の指定）のPod設定を許容します。
+- **Restricted**: 厳しく制限されたポリシーで、Podを強化するための現在のベストプラクティスに沿っています。
+
+これらのセキュリティレベルに対して、それぞれ3つのアクションの中から一つを選択します。
+
+- **enforce**: ポリシー違反がある場合 Pod は作成されません。
+- **audit**: ポリシー違反は監査ログに記録されますが、Pod 作成は許可されます。
+- **warn**: ポリシー違反はユーザーに対して警告を発しますが、Pod 作成は許可されます。
+
+### ネットワークポリシーによる Pod 間の通信制限
+
+ネットワークポリシーを使用して Pod 間の通信を制御し、不要な通信を遮断します。これにより Pod 間の通信を最小限に抑え、攻撃対象範囲を限定します。
+
+たとえば、特定の Namespace 内の Pod のみが相互に通信できるように設定し、それ以外の Pod からのアクセスを拒否することで、セキュリティを強化します。デフォルトで Deny リスト方式を使用し、必要な通信だけを許可することで、より厳格なセキュリティポリシーを実現します。
+
+Kubernetes 標準の L3-4 の [NetworkPolicy](https://kubernetes.io/docs/concepts/services-networking/network-policies/) の他、Cilium を利用している場合は L3-7 の [CiliumNetworkPolicy](https://docs.cilium.io/en/stable/network/kubernetes/policy/#ciliumnetworkpolicy) も選択肢に入ります。
 
 ### 監視ログの利用
 
@@ -246,6 +276,12 @@ https://github.com/aquasecurity/trivy
 
 オープンソースのセキュリティスキャナーで、コンテナイメージ、ファイルシステム、Kubernetes クラスタ、リポジトリ内の脆弱性や設定ミスを検出します。CLI ツールとして簡単に実行でき、脆弱性管理とコンプライアンス維持に役立ちます。また複数の形式に対応し、依存関係やパッケージのセキュリティリスクも解析します。CI/CD パイプラインへの統合も容易で、クラウドネイティブな環境でのセキュリティ対策を強化するために広く利用されています。
 
+**類似ツール**:
+- [Clair](https://github.com/quay/clair)
+- [grype](https://github.com/anchore/grype)
+- [kube-bench](https://github.com/aquasecurity/kube-bench)
+- [Kubescape](https://github.com/kubescape/kubescape)
+
 ## Tetragon
 
 https://github.com/cilium/tetragon
@@ -254,19 +290,61 @@ eBPF を活用したセキュリティおよび監視ツールで、Kubernetes �
 
 ![tetragon](https://github.com/cilium/tetragon/raw/main/docs/static/images/smart_observability.png)
 
+**類似ツール**:
+- [Falco](https://github.com/falcosecurity/falco)
+- [Tracee](https://github.com/aquasecurity/tracee)
+
 ## OPA (Open Policy Agent) Gatekeeper
 
 https://github.com/open-policy-agent/gatekeeper
 
 Kubernetes 環境におけるポリシー管理とリソース制御を行うためのオープンソースツールです。Open Policy Agent (OPA) と統合されており、Kubernetes リソースに対する動的なポリシー適用を可能にします。これにより、クラスタ内でのリソース作成や更新時に、事前に定義されたポリシーに基づく検証が行われ、コンプライアンスやセキュリティを強化できます。また監査機能も提供し、ポリシー違反を検出してレポートすることが可能です。
 
+**類似ツール**:
+- [Kyverno](https://github.com/kyverno/kyverno)
+- [Pod Security Admission](https://kubernetes.io/docs/concepts/security/pod-security-admission/)
+- [Validating Admission Webhook](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/)
+
 ## Kubeclarity
 
 https://github.com/openclarity/kubeclarity
 
-Kubernetes 環境のソフトウェアコンポーネントをスキャンし、脆弱性やライセンスリスクを検出するオープンソースのツールです。Kubeclarity は CI/CD パイプラインや実行中の Kubernetes クラスタ内で、イメージやファイルシステムを分析します。
+Kubernetes 環境のソフトウェアコンポーネントをスキャンし、脆弱性やライセンスリスクを検出するオープンソースのツールです。Kubeclarity はコンテナイメージやファイルシステムの解析を行い、CI/CD パイプラインや実行中の Kubernetes クラスタ内でセキュリティとコンプライアンスを維持するのに役立ちます。
 
 ![kubeclarity](https://github.com/openclarity/kubeclarity/raw/main/images/dashboard-screen.png)
+
+## External Secrets
+
+https://github.com/external-secrets/external-secrets
+
+Kubernetes クラスタ内で Secret の安全な管理と提供を行うためのツールです。AWS Secrets Manager、HashiCorp Vault などの外部シークレットストアと統合されており、これらのシークレットを Kubernetes Secret として自動的に同期します。
+
+![external-secrets](https://external-secrets.io/latest/pictures/diagrams-high-level-simple.png)
+
+**類似ツール**:
+- [Secrets Store CSI Driver](https://github.com/kubernetes-sigs/secrets-store-csi-driver)
+- [Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets)
+
+## cosign
+
+https://github.com/sigstore/cosign
+
+コンテナイメージの署名と検証を行うためのオープンソースツールです。Kubernetes 環境において、イメージの信頼性と整合性を保証するために使用されます。cosign は、シンプルな CLI ツールとして提供されており、イメージに対する署名、検証、ログイン、署名済みのイメージのプッシュなどをサポートしています。
+
+## その他のツール
+
+- **[Image pull secrets provisioner](https://github.com/pfnet/image-pull-secrets-provisioner)**
+  - Kubernetesクラスタ内で ImagepullSecrets を自動的にプロビジョニングするツール。
+- **[KubeArmor](https://github.com/kubearmor/KubeArmor)**
+  - Kubernetes クラスタ内のコンテナやノードに対してセキュリティポリシーを適用するためのツール。
+- **[Permission manager](https://github.com/sighupio/permission-manager)**
+  - Kubernetes の RBAC 権限を簡単に管理、割り当てるための Web UI を提供するツール。便利そうだがしばらく更新なし。
+- **[1Password Connect Kubernetes Operator](https://github.com/1Password/onepassword-operator)**
+  - 1Password からシークレットを Kubernetes クラスタに安全に供給するためのオペレーター。
+- **[KBOM](https://github.com/rad-security/kbom)**
+  - Kubernetes クラスタ内のソフトウェア部品表 (SBOM) を生成するためのツール。
+- **[kubelogin](https://github.com/int128/kubelogin)**
+  - OIDC プロバイダーを使用して Kubernetes にログインするための CLI ツール。
 
 # まとめ
 

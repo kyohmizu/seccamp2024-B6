@@ -1,8 +1,8 @@
 - [演習4-1: Kubernetes のセキュリティベストプラクティス](#演習4-1-kubernetes-のセキュリティベストプラクティス)
   - [監査ログの確認](#監査ログの確認)
+  - [Pod Security Standards の適用](#pod-security-standards-の適用)
   - [Security Context の設定](#security-context-の設定)
   - [seccomp の設定](#seccomp-の設定)
-  - [環境のクリーンアップ](#環境のクリーンアップ)
 - [演習4-2: セキュリティツールの利用](#演習4-2-セキュリティツールの利用)
   - [クラスタのセキュリティスキャン (Trivy)](#クラスタのセキュリティスキャン-trivy)
   - [脆弱性管理 (KubeClarity)](#脆弱性管理-kubeclarity)
@@ -52,6 +52,107 @@ kind: Policy
 rules:
 - level: Metadata
 ```
+
+## Pod Security Standards の適用
+
+Pod Security Admission は、Namespace にラベルを付与することで有効化できます。
+まずは dry-run を使い、PSS の `restricted` を強制した場合の影響を調べてみましょう。
+
+```bash
+$ kubectl label --dry-run=server --overwrite ns --all pod-security.kubernetes.io/enforce=restricted
+namespace/default labeled (server dry run)
+Warning: existing pods in namespace "gadget" violate the new PodSecurity enforce level "restricted:latest"
+Warning: gadget-cxfq4 (and 2 other pods): forbidden AppArmor profiles, seLinuxOptions, allowPrivilegeEscalation != false, unrestricted capabilities, restricted volume types, runAsNonRoot != true, seccompProfile
+namespace/gadget labeled (server dry run)
+namespace/ingress-nginx labeled (server dry run)
+namespace/kube-node-lease labeled (server dry run)
+namespace/kube-public labeled (server dry run)
+Warning: existing pods in namespace "kube-system" violate the new PodSecurity enforce level "restricted:latest"
+Warning: cilium-gj22n (and 2 other pods): forbidden AppArmor profiles, host namespaces, hostPort, privileged, seLinuxOptions, allowPrivilegeEscalation != false, unrestricted capabilities, restricted volume types, runAsNonRoot != true, seccompProfile
+Warning: cilium-operator-9bfb5ffbd-8xch4 (and 1 other pod): host namespaces, hostPort, allowPrivilegeEscalation != false, unrestricted capabilities, runAsNonRoot != true, seccompProfile
+Warning: coredns-7db6d8ff4d-rj2vh (and 2 other pods): runAsNonRoot != true, seccompProfile
+Warning: etcd-kind-control-plane (and 3 other pods): host namespaces, allowPrivilegeEscalation != false, unrestricted capabilities, restricted volume types, runAsNonRoot != true
+Warning: hubble-relay-7c5f6f6774-8g2jz: allowPrivilegeEscalation != false, seccompProfile
+Warning: hubble-ui-86f8bf6b94-dtzmg: allowPrivilegeEscalation != false, unrestricted capabilities, runAsNonRoot != true, seccompProfile
+Warning: tetragon-gkxbw (and 2 other pods): host namespaces, privileged, allowPrivilegeEscalation != false, unrestricted capabilities, restricted volume types, runAsNonRoot != true, seccompProfile
+namespace/kube-system labeled (server dry run)
+Warning: existing pods in namespace "kubeclarity" violate the new PodSecurity enforce level "restricted:latest"
+Warning: kubeclarity-kubeclarity-8c8c479c6-2pg6v (and 2 other pods): seccompProfile
+Warning: kubeclarity-kubeclarity-postgresql-0: allowPrivilegeEscalation != false, unrestricted capabilities, runAsNonRoot != true, seccompProfile
+namespace/kubeclarity labeled (server dry run)
+Warning: existing pods in namespace "local-path-storage" violate the new PodSecurity enforce level "restricted:latest"
+Warning: local-path-provisioner-988d74bc-zxrml: allowPrivilegeEscalation != false, unrestricted capabilities, runAsNonRoot != true, seccompProfile
+namespace/local-path-storage labeled (server dry run)
+Warning: existing pods in namespace "unguard" violate the new PodSecurity enforce level "restricted:latest"
+Warning: unguard-ad-service-66777c45b4-f4728 (and 15 other pods): allowPrivilegeEscalation != false, unrestricted capabilities, runAsNonRoot != true, seccompProfile
+Warning: unguard-mariadb-0: unrestricted capabilities, seccompProfile
+namespace/unguard labeled (server dry run)
+```
+
+PSS に違反している Pod の情報を取得できました。既存のクラスタに後から PSS を適用する場合は、サービス影響が出ないように事前調査をする必要があります。
+
+次は `default` Namespace に PSS を適用してみます。
+
+```bash
+$ kubectl label --overwrite ns default pod-security.kubernetes.io/enforce=restricted
+```
+
+`restricted` を強制 (`enforce`) すると、ポリシーに違反した Pod の作成に失敗します。
+
+```bash
+$ kubectl run pss-example --image nginx
+Error from server (Forbidden): pods "pss-example" is forbidden: violates PodSecurity "restricted:latest": allowPrivilegeEscalation != false (container "pss-example" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container "pss-example" must set securityContext.capabilities.drop=["ALL"]), runAsNonRoot != true (pod or container "pss-example" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container "pss-example" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost")
+```
+
+`enforce` から `warn` に変更すると、警告メッセージは出ますが Pod は作成できます。
+
+```bash
+$ kubectl label ns default pod-security.kubernetes.io/enforce-
+namespace/default unlabeled
+
+$ kubectl label --overwrite ns default pod-security.kubernetes.io/warn=restricted
+namespace/default labeled
+
+$ kubectl run pss-example --image nginx
+Warning: would violate PodSecurity "restricted:latest": allowPrivilegeEscalation != false (container "pss-example" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container "pss-example" must set securityContext.capabilities.drop=["ALL"]), runAsNonRoot != true (pod or container "pss-example" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container "pss-example" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost")
+pod/pss-example created
+
+$ kubectl get po
+NAME          READY   STATUS    RESTARTS   AGE
+pss-example   1/1     Running   0          10s
+```
+
+今度は `warn` から `audit` に変更し、Pod を再作成してみます。
+
+```bash
+$ kubectl delete po pss-example
+pod "pss-example" deleted
+
+$ kubectl label ns default pod-security.kubernetes.io/warn-
+namespace/default unlabeled
+
+$ kubectl label --overwrite ns default pod-security.kubernetes.io/audit=restricted
+namespace/default labeled
+
+$ kubectl run pss-example --image nginx
+pod/pss-example created
+```
+
+問題なく Pod を作成できているように見えますが、監査ログには違反メッセージが記録されます。
+
+```bash
+$ docker exec -it kind-control-plane tail -n 10000 /var/log/kubernetes/kube-apiserver-audit.log | grep 'pod-security.kubernetes.io/audit-violations' | grep pss-example
+{"kind":"Event","apiVersion":"audit.k8s.io/v1","level":"Metadata","auditID":"0cf28c0d-7508-4ff0-b65a-d59f5fbfb710","stage":"ResponseComplete","requestURI":"/api/v1/namespaces/default/pods?fieldManager=kubectl-run","verb":"create","user":{"username":"kubernetes-admin","groups":["kubeadm:cluster-admins","system:authenticated"]},"sourceIPs":["172.18.0.1"],"userAgent":"kubectl/v1.30.3 (linux/amd64) kubernetes/6fc0a69","objectRef":{"resource":"pods","namespace":"default","name":"pss-example","apiVersion":"v1"},"responseStatus":{"metadata":{},"code":201},"requestReceivedTimestamp":"2024-08-14T05:40:56.794659Z","stageTimestamp":"2024-08-14T05:40:56.801855Z","annotations":{"authorization.k8s.io/decision":"allow","authorization.k8s.io/reason":"RBAC: allowed by ClusterRoleBinding \"kubeadm:cluster-admins\" of ClusterRole \"cluster-admin\" to Group \"kubeadm:cluster-admins\"","pod-security.kubernetes.io/audit-violations":"would violate PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"pss-example\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"pss-example\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"pss-example\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"pss-example\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")","pod-security.kubernetes.io/enforce-policy":"privileged:latest"}}
+```
+
+一通り確認できたら、環境をクリーンアップします。
+
+```bash
+$ kubectl delete po pss-example
+$ kubectl label ns default pod-security.kubernetes.io/audit-
+```
+
+参考: https://kubernetes.io/docs/tutorials/security/cluster-level-pss/
 
 ## Security Context の設定
 
@@ -206,6 +307,12 @@ Commercial support is available at
 </html>
 ```
 
+一通り確認できたら、環境をクリーンアップします。
+
+```bash
+$ kubectl delete -f nginx-securit-context.yaml
+```
+
 ## seccomp の設定
 
 seccomp を設定した Pod を作成し、コンテナの動作を確認してみましょう。
@@ -232,9 +339,9 @@ $ unshare -rmC bash
 unshare: unshare failed: Operation not permitted
 ```
 
-`unshare` コマンドの実行が禁止されました。`unshare` はコンテナブレイクアウトにも使われますが、seccomp により脆弱性があったとしても悪用できなくなります。
+`unshare` コマンドの実行が禁止されました。`unshare` はコンテナブレイクアウトにも使われますが、seccomp が有効であれば脆弱性があったとしても悪用できなくなります。
 
-seccompProfile には `RuntimeDefault`　を指定しています。これはコンテナランタイムが提供するデフォルトの seccomp プロファイルです。
+seccompProfile には `RuntimeDefault` を指定しています。これはコンテナランタイムが提供するデフォルトの seccomp プロファイルです。
 演習環境のクラスタは containerd を使用しているので、デフォルト seccomp は containerd のソースコードから見つけることができます。
 
 https://github.com/containerd/containerd/blob/main/contrib/seccomp/seccomp_default.go#L55
@@ -308,15 +415,10 @@ $ kubectl gadget advise seccomp-profile stop u97xe2MKe1Kx7nTw
 
 また [Security Profiles Operator](https://github.com/kubernetes-sigs/security-profiles-operator) と連携することで、ノードへのプロファイル配置を自動化することもできます。
 
-## 環境のクリーンアップ
-
-演習で作成したリソースを削除します。
-
-（コピペしやすいように `$` は除いています）
+一通り確認できたら、環境をクリーンアップします。
 
 ```bash
-kubectl delete -f nginx-securit-context.yaml
-kubectl delete -f nginx-seccomp.yaml
+$ kubectl delete -f nginx-seccomp.yaml
 ```
 
 # 演習4-2: セキュリティツールの利用
@@ -342,7 +444,8 @@ trivy k8s --compliance=k8s-cis-1.23 --report all --timeout 30m --debug --tolerat
 
 事前に実施したそれぞれのスキャン結果を[こちら](./trivy/)に配置しています。
 
-trivy のスキャン結果を調べ、次の観点でセキュリティ状況を評価してください。
+trivy のスキャン結果を調べ、次の観点で検出項目を評価してください。
+（大量に検知されていると思うので可能な範囲で大丈夫です）
 
 - どのような項目が検出されているか
 - 検出された設定ミスを放置するとどのようなリスクがあるか

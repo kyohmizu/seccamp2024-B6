@@ -42,6 +42,7 @@
 - セキュリティ（後述）
   - Tetragon
   - Kubeclarity
+  - Inspektor Gadget
 
 # サーバー環境詳細
 

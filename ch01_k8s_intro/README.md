@@ -45,6 +45,8 @@
 
 > Kubernetesは、宣言的な構成管理と自動化を促進し、コンテナ化されたワークロードやサービスを管理するための、ポータブルで拡張性のあるオープンソースのプラットフォームです。Kubernetesは巨大で急速に成長しているエコシステムを備えており、それらのサービス、サポート、ツールは幅広い形で利用可能です。
 
+Kubernetes は [Cloud Native Computing Foundation](https://www.cncf.io/) (CNCF) がホストするプロジェクトです。CNCF はクラウドネイティブな OSS 技術の推進を行う団体で、2015年に Linux Foundation 傘下に設立されました。Kubernetes が一つ目のプロジェクトとして Google から CNCF に寄贈され、2018年に最初の Graduated (卒業) プロジェクトとなりました。
+
 Kubernetes の機能:
 
 - サービスディスカバリーと負荷分散
@@ -125,7 +127,7 @@ https://kubernetes.io/ja/docs/concepts/overview/components/
   - クラスタのすべてのデータを保存するキー・バリュー・ストア。
 - **kube-scheduler**
   - 新しい Pod のスケジューリングを行い、最適なノードに割り当てます。
-  - リソース要件、ポッドの親和性と反親和性、ノードの可用性などを考慮します。
+  - リソース要件、Pod の親和性と反親和性、ノードの可用性などを考慮します。
 - **kube-controller-manager**
   - クラスタ全体の状態を管理するコントローラー群。
   - 各種コントローラ（Pod, Deployment, Node Controller など）を統合して実行します。

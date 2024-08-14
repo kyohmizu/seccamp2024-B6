@@ -107,9 +107,15 @@ TTP は攻撃の具体的な方法を示し、攻撃シミュレーションや�
 
 https://attack.mitre.org/matrices/enterprise/containers/
 
+Containers Matrix はコンテナ技術に特化した攻撃手法をまとめたものです。
+
+![container-matrix](./images/container-matrix.png)
+
 ## Kubernetes Matrix
 
 https://www.microsoft.com/en-us/security/blog/2020/04/02/attack-matrix-kubernetes/
+
+Kubernetes Matrix は Microsoft が作成したものです。コンテナや Kubernetes に合わせた攻撃内容となっており、クラウドネイティブ環境の脅威を考える上で非常に参考になります。
 
 ![k8s-matrix](./images/k8s-matrix.png)
 
@@ -245,7 +251,7 @@ Kubernetes のやられ環境を構築し攻撃手法を学習するためのツ
 
 https://owasp.org/www-project-kubernetes-top-ten/
 
-Kubenretes 環境の主要なリスクをまとめたもの。
+Kubernetes 環境の主要なリスクをまとめたもの。
 
 - K01: Insecure Workload Configurations（安全でないワークロードの設定）
 - K02: Supply Chain Vulnerabilities（サプライチェーンにおける脆弱性）
