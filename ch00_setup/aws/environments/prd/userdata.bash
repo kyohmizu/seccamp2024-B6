@@ -31,6 +31,8 @@ EOF
 apt update
 apt upgrade -y
 
+apt install -y jq
+
 # docker
 # https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository
 apt install -y ca-certificates curl

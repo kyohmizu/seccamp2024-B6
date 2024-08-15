@@ -4,7 +4,8 @@ module "ec2" {
   instance_name = "seccamp-b6"
   env           = "prd"
   region        = "ap-northeast-1"
-  ami           = "ami-0e44d8473bfd756ed" # /aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id
+  # aws ssm get-parameters --names /aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id --region ap-northeast-1 --query "Parameters[0].Value"
+  ami           = "ami-0ac6fa9865c21266e"
   user_data     = file("${path.module}/userdata.bash")
 
   instances = {

@@ -3,6 +3,7 @@
   - [Pod Security Standards の適用](#pod-security-standards-の適用)
   - [Security Context の設定](#security-context-の設定)
   - [seccomp の設定](#seccomp-の設定)
+  - [distroless イメージの調査](#distroless-イメージの調査)
 - [演習4-2: セキュリティツールの利用](#演習4-2-セキュリティツールの利用)
   - [クラスタのセキュリティスキャン (Trivy)](#クラスタのセキュリティスキャン-trivy)
   - [脆弱性管理 (KubeClarity)](#脆弱性管理-kubeclarity)
@@ -421,6 +422,107 @@ $ kubectl gadget advise seccomp-profile stop u97xe2MKe1Kx7nTw
 $ kubectl delete -f nginx-seccomp.yaml
 ```
 
+## distroless イメージの調査
+
+Chainguard Images から nginx のコンテナイメージを取得し、trivy を使って不要なパッケージを含まないか調べてみます。
+
+```bash
+$ trivy image cgr.dev/chainguard/nginx
+2024-08-14T17:27:31Z    INFO    [db] Need to update DB
+2024-08-14T17:27:31Z    INFO    [db] Downloading DB...  repository="ghcr.io/aquasecurity/trivy-db:2"
+51.41 MiB / 51.41 MiB [--------------------------------------------------------------------------------------------------------------------------------------------------] 100.00% 23.14 MiB p/s 2.4s
+2024-08-14T17:27:34Z    INFO    [vuln] Vulnerability scanning is enabled
+2024-08-14T17:27:34Z    INFO    [secret] Secret scanning is enabled
+2024-08-14T17:27:34Z    INFO    [secret] If your scanning is slow, please try '--scanners vuln' to disable secret scanning
+2024-08-14T17:27:34Z    INFO    [secret] Please see also https://aquasecurity.github.io/trivy/v0.54/docs/scanner/secret#recommendation for faster secret detection
+2024-08-14T17:27:37Z    WARN    [sbom] Ignore the OS package as no OS is detected.      file_path="var/lib/db/sbom/glibc-2.39-r8.spdx.json"
+2024-08-14T17:27:37Z    WARN    [sbom] Ignore the OS package as no OS is detected.      file_path="var/lib/db/sbom/glibc-locale-posix-2.39-r8.spdx.json"
+2024-08-14T17:27:37Z    WARN    [sbom] Ignore the OS package as no OS is detected.      file_path="var/lib/db/sbom/ld-linux-2.39-r8.spdx.json"
+2024-08-14T17:27:37Z    WARN    [sbom] Ignore the OS package as no OS is detected.      file_path="var/lib/db/sbom/libcrypt1-2.39-r8.spdx.json"
+2024-08-14T17:27:37Z    WARN    [sbom] Ignore the OS package as no OS is detected.      file_path="var/lib/db/sbom/libcrypto3-3.3.1-r5.spdx.json"
+2024-08-14T17:27:37Z    WARN    [sbom] Ignore the OS package as no OS is detected.      file_path="var/lib/db/sbom/libgcc-13.3.0-r2.spdx.json"
+2024-08-14T17:27:37Z    WARN    [sbom] Ignore the OS package as no OS is detected.      file_path="var/lib/db/sbom/libssl3-3.3.1-r5.spdx.json"
+2024-08-14T17:27:37Z    WARN    [sbom] Ignore the OS package as no OS is detected.      file_path="var/lib/db/sbom/ca-certificates-bundle-20240705-r0.spdx.json"
+2024-08-14T17:27:37Z    WARN    [sbom] Ignore the OS package as no OS is detected.      file_path="var/lib/db/sbom/libstdc++-13.3.0-r2.spdx.json"
+2024-08-14T17:27:37Z    WARN    [sbom] Ignore the OS package as no OS is detected.      file_path="var/lib/db/sbom/libxcrypt-4.4.36-r7.spdx.json"
+2024-08-14T17:27:37Z    WARN    [sbom] Ignore the OS package as no OS is detected.      file_path="var/lib/db/sbom/nginx-mainline-1.27.0-r7.spdx.json"
+2024-08-14T17:27:37Z    WARN    [sbom] Ignore the OS package as no OS is detected.      file_path="var/lib/db/sbom/nginx-mainline-package-config-1.27.0-r7.spdx.json"
+2024-08-14T17:27:37Z    WARN    [sbom] Ignore the OS package as no OS is detected.      file_path="var/lib/db/sbom/nginx-mainline-config-1.27.0-r7.spdx.json"
+2024-08-14T17:27:37Z    WARN    [sbom] Ignore the OS package as no OS is detected.      file_path="var/lib/db/sbom/wolfi-baselayout-20230201-r15.spdx.json"
+2024-08-14T17:27:37Z    WARN    [sbom] Ignore the OS package as no OS is detected.      file_path="var/lib/db/sbom/pcre-8.45-r3.spdx.json"
+2024-08-14T17:27:37Z    WARN    [sbom] Ignore the OS package as no OS is detected.      file_path="var/lib/db/sbom/zlib-1.3.1-r4.spdx.json"
+2024-08-14T17:27:37Z    INFO    Detected OS     family="wolfi" version="20230201"
+2024-08-14T17:27:37Z    INFO    [wolfi] Detecting vulnerabilities...    pkg_num=16
+2024-08-14T17:27:37Z    INFO    Number of language-specific files       num=0
+
+cgr.dev/chainguard/nginx (wolfi 20230201)
+
+Total: 0 (UNKNOWN: 0, LOW: 0, MEDIUM: 0, HIGH: 0, CRITICAL: 0)
+```
+
+検出された脆弱性は0件でした。
+また `Ignore the OS package as no OS is detected.` と出力されることから distroless イメージであることがわかります。
+
+SBOM を作成してコンテナに含まれるパッケージを調べてみると、以下のように最小限のパッケージのみ含まれていました。
+
+```bash
+$ trivy image --format spdx-json --output trivy-result.json cgr.dev/chainguard/nginx
+
+$ cat trivy-result.json | jq '.packages[].name'
+"cgr.dev/chainguard/nginx"
+"ca-certificates-bundle"
+"glibc"
+"glibc-locale-posix"
+"ld-linux"
+"libcrypt1"
+"libcrypto3"
+"libgcc"
+"libssl3"
+"libstdc++"
+"libxcrypt"
+"nginx-mainline"
+"nginx-mainline-config"
+"nginx-mainline-package-config"
+"pcre"
+"wolfi-baselayout"
+"zlib"
+"wolfi"
+```
+
+もちろんこのイメージから nginx を正常に実行することができます。
+
+```bash
+$ docker run --rm --expose 8080 --name nginx-distroless -d cgr.dev/chainguard/nginx
+55947c73e38e202c60f2e2a1bbc654ecb386b73e7f73b05ad74f50bb7e7aabbb
+
+$ curl $(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' nginx-distroless):8080
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+
+$ docker stop nginx-distroless
+```
+
 # 演習4-2: セキュリティツールの利用
 
 ツールを利用したセキュリティ運用を体験してみましょう。
@@ -508,6 +610,7 @@ apiVersion: cilium.io/v1alpha1
 kind: TracingPolicyNamespaced
 metadata:
   name: "file-access-restrictions"
+  namespace: unguard
 spec:
   kprobes:
   - call: "security_file_permission"
@@ -585,6 +688,31 @@ spec:
         operator: "Equal"
         values:
         - "2" # MAY_WRITE
+      matchActions:
+      - action: Sigkill
+  - call: "security_mmap_file"
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "file"
+    - index: 1
+      type: "uint32"
+    - index: 2
+      type: "nop"
+    returnArg:
+      index: 0
+      type: "int"
+    returnArgAction: "Post"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/bin/bash"
+        - "/bin/chmod"
+        - "/bin/chown"
+        - "/usr/bin/bash"
+        - "/usr/bin/passwd"
       matchActions:
       - action: Sigkill
 EOF

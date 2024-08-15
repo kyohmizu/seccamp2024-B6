@@ -185,7 +185,9 @@ seccomp (Secure Computing Mode) と AppArmor は Linux カーネルのセキュ�
 
 ### distroless イメージの利用
 
-distroless イメージは最小限のファイルのみを含む軽量なコンテナイメージです。これをベースイメージとして利用することで、攻撃対象領域を最小限に抑えることができます。
+distroless イメージは最小限のファイルのみを含む軽量なコンテナイメージです。これをベースイメージとして利用することで、攻撃対象を最小限に抑えることができます。
+
+Chainguard 社が提供する [Chainguard Images](https://www.chainguard.dev/chainguard-images) には、多くの OSS の distroless イメージが格納されています。
 
 ### Checkpoint によるコンテナ保全
 
