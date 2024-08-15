@@ -612,6 +612,10 @@ metadata:
   name: "file-access-restrictions"
   namespace: unguard
 spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: proxy-service
+      app.kubernetes.io/part-of: unguard
   kprobes:
   - call: "security_file_permission"
     message: "File access denied"
@@ -705,6 +709,13 @@ spec:
       type: "int"
     returnArgAction: "Post"
     selectors:
+    - matchPIDs:
+      - operator: NotIn
+        followForks: true
+        isNamespacePID: true
+        values:
+        - 0
+        - 1
     - matchBinaries:
       - operator: "In"
         values:
@@ -724,6 +735,10 @@ metadata:
   name: "only-clusterip-access"
   namespace: unguard
 spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: proxy-service
+      app.kubernetes.io/part-of: unguard
   kprobes:
   - call: "tcp_connect"
     message: "Only allow connections to ClusterIP services"
@@ -751,7 +766,7 @@ tetragon CLI を使い、3章で攻撃に利用した `unguard-proxy-service` �
 以下コマンドを実行すると、Pod の[セキュリティイベント](https://tetragon.io/docs/overview/)をリアルタイムに出力してくれるようになります。
 
 ```bash
-$ POD=unguard-proxy-service-5b84d8dd85-rcqdt
+$ POD=$(kubectl get po -n unguard -l app.kubernetes.io/name=proxy-service,app.kubernetes.io/part-of=unguard -o jsonpath='{.items[*].metadata.name}')
 $ NAMESPACE=unguard
 $ kubectl exec -ti -n kube-system $(kubectl -n kube-system get pods -l 'app.kubernetes.io/name=tetragon' -o name --field-selector spec.nodeName=$(kubectl get pod -n $NAMESPACE $POD -o jsonpath='{.spec.nodeName}')) -c tetragon -- tetra getevents -o compact --pods $POD
 ```
@@ -774,7 +789,8 @@ tetragon の出力を見ると `curl` の実行に失敗していることがわ
 今度は別のターミナルを開き、そこから該当 Pod に `kubectl exec` を試みます。
 
 ```bash
-$ kubectl exec -it -n unguard unguard-proxy-service-5b84d8dd85-rcqdt -- bash
+$ POD=$(kubectl get po -n unguard -l app.kubernetes.io/name=proxy-service,app.kubernetes.io/part-of=unguard -o jsonpath='{.items[*].metadata.name}')
+$ kubectl exec -it -n unguard $POD -- bash
 command terminated with exit code 137
 ```
 
@@ -794,7 +810,7 @@ command terminated with exit code 137
 `bash` の実行ができなくなったことで Pod への不正アクセスを防げると思うかもしれませんが、これにはさまざまなバイパス手段が存在します。
 
 ```bash
-$ kubectl exec -it -n unguard unguard-proxy-service-5b84d8dd85-rcqdt -- sh
+$ kubectl exec -it -n unguard $POD -- sh
 ```
 
 今回適用したようなシンプルなポリシーには多数の抜け道が存在します。上記以外にどのようなバイパス手段があるのか、色々と試してみると面白いと思います。

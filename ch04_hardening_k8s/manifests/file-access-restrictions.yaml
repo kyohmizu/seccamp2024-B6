@@ -4,6 +4,10 @@ metadata:
   name: "file-access-restrictions"
   namespace: unguard
 spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: proxy-service
+      app.kubernetes.io/part-of: unguard
   kprobes:
   - call: "security_file_permission"
     message: "File access denied"
@@ -97,6 +101,13 @@ spec:
       type: "int"
     returnArgAction: "Post"
     selectors:
+    - matchPIDs:
+      - operator: NotIn
+        followForks: true
+        isNamespacePID: true
+        values:
+        - 0
+        - 1
     - matchBinaries:
       - operator: "In"
         values:

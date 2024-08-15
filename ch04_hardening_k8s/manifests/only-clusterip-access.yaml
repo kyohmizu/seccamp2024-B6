@@ -4,6 +4,10 @@ metadata:
   name: "only-clusterip-access"
   namespace: unguard
 spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: proxy-service
+      app.kubernetes.io/part-of: unguard
   kprobes:
   - call: "tcp_connect"
     message: "Only allow connections to ClusterIP services"
