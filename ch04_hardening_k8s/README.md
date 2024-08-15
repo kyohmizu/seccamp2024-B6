@@ -347,6 +347,8 @@ https://github.com/sigstore/cosign
   - Kubernetes クラスタ内のソフトウェア部品表 (SBOM) を生成するためのツール。
 - **[kubelogin](https://github.com/int128/kubelogin)**
   - OIDC プロバイダーを使用して Kubernetes にログインするための CLI ツール。
+- **[OpenSSF Scorecard](https://github.com/ossf/scorecard)**
+  - OSS のセキュリティレベルをチェックし、利用者が OSS の安全性を評価できるようにするためのツール。
 
 # まとめ
 

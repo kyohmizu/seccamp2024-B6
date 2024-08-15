@@ -1,5 +1,9 @@
 # 攻撃シナリオ（デモ）
 
+<span style="color:red">**本シナリオはセキュリティの学習を目的としたコンテンツであり、悪用は厳禁です。**</span>
+
+---
+
 アプリケーションの脆弱性を利用してコンテナに侵入し、Kubernetes の Admin 権限の取得を目指します。
 
 以下は演習環境の簡単な構成図です。
@@ -154,8 +158,8 @@ Pod のマニフェストファイルを作成し、クラスタにデプロイ�
 [unguard-proxy-service]: ./kubectl apply -f pod.yaml --kubeconfig kubeconfig
 pod/attack-pod-1 created
 
-[unguard-proxy-service]: ./kubectl get po -n unguard --kubeconfig kubeconfig | grep attack
-attack-pod-1                                  1/1     Running     0          9s
+[unguard-proxy-service]: ./kubectl get po -n unguard --kubeconfig kubeconfig -o wide | grep attack
+attack-pod-1                                  1/1     Running     0          9s     10.0.0.16    kind-worker          <none>           <none>
 ```
 
 ![k8s-diagram-03](./images/k8s-diagram-03.png)
@@ -348,7 +352,7 @@ Pod をデプロイすると、想定通りコントロールプレーンで立�
 [unguard-proxy-service]: ./kubectl apply -f pod2.yaml --kubeconfig kubeconfig
 pod/attack-pod-2 created
 
-[unguard-proxy-service]: ./kubectl get po -n unguard --kubeconfig kubeconfig | grep attack
+[unguard-proxy-service]: ./kubectl get po -n unguard --kubeconfig kubeconfig -o wide | grep attack
 attack-pod-1                                  1/1     Running     1 (18m ago)   15m     10.0.0.16    kind-worker          <none>           <none>
 attack-pod-2                                  1/1     Running     1 (16m ago)   6m      10.0.2.97    kind-control-plane   <none>           <none>
 ```
